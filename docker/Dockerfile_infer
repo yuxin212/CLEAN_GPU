@@ -1,0 +1,64 @@
+ARG CUDA=11.3.0
+FROM nvidia/cuda:${CUDA}-cudnn8-runtime-ubuntu18.04
+ARG CUDA
+
+SHELL ["/bin/bash", "-c"]
+
+# Install dependencies
+RUN apt-get update && DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    build-essential \
+    ca-certificates \
+    curl \
+    git \
+    unzip \
+    wget \
+    && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Miniconda
+RUN wget -q -P /tmp \
+    https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh && \
+    bash /tmp/Miniconda3-latest-Linux-x86_64.sh -b -p /opt/conda && \
+    rm /tmp/Miniconda3-latest-Linux-x86_64.sh 
+
+# Install Conda packages
+ENV PATH="/opt/conda/bin:$PATH"
+RUN source /opt/conda/bin/activate && \
+    conda init && \
+    conda update -qy conda && \
+    conda install pytorch==1.11.0 torchvision==0.12.0 cudatoolkit=11.3 -c pytorch -y
+
+RUN python -m pip install --upgrade pip && \
+    python -m pip install pandas==1.4.2 numpy==1.22.3 scipy==1.7.3 scikit-learn==1.2.0 matplotlib==3.7.0 tqdm==4.64.0 fair-esm==2.0.0 && \
+    python -m pip install gdown
+
+RUN mkdir -p /app/CLEAN
+
+COPY app /app/CLEAN
+
+WORKDIR /app/CLEAN
+
+RUN git clone https://github.com/facebookresearch/esm
+
+RUN mkdir data/esm_data
+
+RUN mkdir data/pretrained
+
+# Download pretrained weights
+RUN gdown --id 1gsxjSf2CtXzgW1XsennTr-TcvSoTSDtk
+RUN unzip pretrained.zip -d data/pretrained
+RUN mv /app/CLEAN/data/pretrained/'CLEAN_pretrained (2)'/* /app/CLEAN/data/pretrained/
+
+RUN wget -q -P /root/.cache/torch/hub/checkpoints \
+    https://dl.fbaipublicfiles.com/fair-esm/models/esm1b_t33_650M_UR50S.pt && \
+    wget -q -P /root/.cache/torch/hub/checkpoints \
+    https://dl.fbaipublicfiles.com/fair-esm/regression/esm1b_t33_650M_UR50S-contact-regression.pt
+
+RUN python build.py install
+
+RUN echo $'#!/bin/bash\n\
+    python /app/CLEAN/CLEAN_infer_fasta.py "$@"' > /app/entrypoint.sh && \
+    chmod +x /app/entrypoint.sh
+
+ENTRYPOINT ["/app/entrypoint.sh"]

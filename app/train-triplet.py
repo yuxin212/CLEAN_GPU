@@ -82,7 +82,17 @@ def main():
           dtype, "\n==> args:", args)
     #======================== ESM embedding  ===================#
     # loading ESM embedding for dist map
- 
+    if not os.path.exists(os.path.join('data/distance_map', args.training_data + '_esm.pkl')):
+        print("ESM embedding not found, generating...")
+        train_fasta_file = mutate_single_seq_ECs(args.training_data)
+        ensure_dirs("data/esm_data")
+        ensure_dirs("data/pretrained")
+        csv_to_fasta(f'data/{args.training_data}.csv', f'data/{args.training_data}.fasta')
+
+        retrieve_esm1b_embedding(args.training_data)
+        retrieve_esm1b_embedding(train_fasta_file)
+        compute_esm_distance(args.training_data)
+        
     esm_emb = pickle.load(
         open('./data/distance_map/' + args.training_data + '_esm.pkl',
                 'rb')).to(device=device, dtype=dtype)

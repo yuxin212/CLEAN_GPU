@@ -114,7 +114,7 @@ def ensure_dirs(path):
     if not os.path.exists(path):
         os.makedirs(path)
         
-def retrive_esm1b_embedding(fasta_name):
+def retrieve_esm1b_embedding(fasta_name):
     esm_script = "esm/scripts/extract.py"
     esm_out = "data/esm_data"
     esm_type = "esm1b_t33_650M_UR50S"
@@ -135,7 +135,7 @@ def compute_esm_distance(train_file):
     pickle.dump(esm_emb, open('./data/distance_map/' + train_file + '_esm.pkl', 'wb'))
     
 def prepare_infer_fasta(fasta_name):
-    retrive_esm1b_embedding(fasta_name)
+    retrieve_esm1b_embedding(fasta_name)
     csvfile = open('./data/' + fasta_name +'.csv', 'w', newline='')
     csvwriter = csv.writer(csvfile, delimiter = '\t')
     csvwriter.writerow(['Entry', 'EC number', 'Sequence'])
